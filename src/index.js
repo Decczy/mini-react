@@ -1,5 +1,5 @@
-import { render } from './react/fiber';
-import createElement from './react/createElement';
+import { render } from './packages/fiber';
+import createElement from './packages/createElement';
 
 const top = (
     /** @jsx createElement */

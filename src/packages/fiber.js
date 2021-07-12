@@ -1,19 +1,25 @@
 import createDom from './createDom';
 import commit from './commit';
+import { reconcileChildren } from './reconcile';
 
-let rootFiber = null;
+// 首次提交的fiber tree
+let wipRoot = null;
+// 表示当前一次提交的 fiber tree
+let currentRoot = null;
+// 当前执行的 fiber 节点
 let nextUnitofWork = null;
 
 export function render(element, container){
     // 生成一个根fiber
-    rootFiber = {
+    wipRoot = {
         dom: container,
         parent: null,
         props: {
             children: [element]
-        }
+        },
+        alternative: currentRoot,
     }
-    nextUnitofWork = rootFiber;
+    nextUnitofWork = wipRoot;
 }
 
 function performUnitOfWork(fiber){
@@ -26,8 +32,9 @@ function performUnitOfWork(fiber){
     //     // 更新父Fiber的DOM节点（此时只有增）
     //     fiber.parent.dom.appendChild(fiber.dom);
     // }
-
     let elements = fiber.props.children;
+    reconcileChildren(fiber, elements);
+
     let index = 0;
     let prevSibling = null;
     // 生成子节点对应的Fiber，并将子Fiber串起来
@@ -75,12 +82,12 @@ function workLoop(deadline){
         nextUnitofWork = performUnitOfWork(nextUnitofWork);
         shouldYield = deadline.timeRemaining() > 1;
     }
-
-
     if(nextUnitofWork){
         requestIdleCallback(workLoop);
-    }else if(!nextUnitofWork && rootFiber){
-        commit(rootFiber);
+    }else if(!nextUnitofWork && wipRoot){
+        commit(wipRoot);
+        currentRoot = wipRoot;
+        wipRoot = null;
     }
 }
 
