@@ -1,7 +1,9 @@
 export function reconcileChildren(wipFiber, elements, deletions){
-    let oldFiber = wipFiber.alternate && wipFiber.alternate.child;
+    // 上一次wipFiber的子fiber
+    let oldFiber = wipFiber.alternate && wipFiber.alternate.child || null;
     let index = 0;
-    while(index < elements || oldFiber){
+    let preFiber = null;
+    while(index < elements.length || oldFiber){
         const element = elements[index];
         let newFiber = null;
         const sameType = Boolean(oldFiber && element && element.type === oldFiber.type);
@@ -30,10 +32,23 @@ export function reconcileChildren(wipFiber, elements, deletions){
         }
 
         if(!sameType && oldFiber){
-            oldFiber.effectTag = 'DELETE';
+            oldFiber.effectTag = 'DELETION';
             deletions.push(oldFiber);
         }
 
+        if(newFiber){
+            if(index===0){
+                wipFiber.child = newFiber;
+            }else if(index<element.length){
+                prevFiber.sibling = newFiber;
+            }
+            prevFiber = newFiber;
+        }
+
         oldFiber = oldFiber.sibling;
+        index++;
+    }
+    if(preFiber){
+        preFiber.sibling = null;
     }
 }

@@ -8,6 +8,7 @@ let wipRoot = null;
 let currentRoot = null;
 // 当前执行的 fiber 节点
 let nextUnitofWork = null;
+let deletions = null;
 
 export function render(element, container){
     // 生成一个根fiber
@@ -20,6 +21,7 @@ export function render(element, container){
         alternative: currentRoot,
     }
     nextUnitofWork = wipRoot;
+    deletions = [];
 }
 
 function performUnitOfWork(fiber){
@@ -28,35 +30,9 @@ function performUnitOfWork(fiber){
         fiber.dom = createDom(fiber);
     }
 
-    // if(fiber.parent){
-    //     // 更新父Fiber的DOM节点（此时只有增）
-    //     fiber.parent.dom.appendChild(fiber.dom);
-    // }
     let elements = fiber.props.children;
-    reconcileChildren(fiber, elements);
-
-    let index = 0;
-    let prevSibling = null;
-    // 生成子节点对应的Fiber，并将子Fiber串起来
-    while(index < elements.length){
-        const newFiber = {
-            type: elements[index].type,
-            props: elements[index].props,
-            parent: fiber,
-            dom: null
-        }
-        if(index===0){
-            fiber.child = newFiber;
-        }else{
-            prevSibling.sibling = newFiber;
-        }
-
-        prevSibling = newFiber;
-        index++;
-    }
-    if(prevSibling){
-        prevSibling.sibling = null;
-    }
+    // 根据上次reconcile的子fiber生成新的子fiber
+    reconcileChildren(fiber, elements, deletions);
 
     // 如果有子fiber，下一个操作的fiber为子fiber
     if(fiber.child){
@@ -85,7 +61,7 @@ function workLoop(deadline){
     if(nextUnitofWork){
         requestIdleCallback(workLoop);
     }else if(!nextUnitofWork && wipRoot){
-        commit(wipRoot);
+        commit(wipRoot, deletions);
         currentRoot = wipRoot;
         wipRoot = null;
     }
